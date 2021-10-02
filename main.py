@@ -3,11 +3,11 @@ import clipboard
 #  import urllib.request
 #  import configparser
 import pathlib
-import os
-import collections
 import shutil
 import markdown
 import html
+from syntax_highlight import hilcd
+#  import syntax_highlight
 #  import logging
 #  import hashlib
 
@@ -37,7 +37,8 @@ class FormatConverter:
         r"(?<!`)`(?=[^`])[\s\S]*?`"
     )
     OBS_DISPLAY_CODE_REGEXP = re.compile(
-        r"```[\s\S]*?```"
+        r"^```(\w*)\n([\s\S]*)^```",
+        flags=re.MULTILINE
     )
     OBS_IMG_REGEXP = re.compile(
         r"!?\[\[(.+\.png)\]\]"
@@ -203,7 +204,7 @@ class FormatConverter:
         #  )
 #
     @staticmethod
-    def format(note_text, cloze=False):
+    def format(note_text):
         """Apply all format conversions to note_text."""
         note_text = FormatConverter.obsidian_to_anki_math(note_text)
         # Extract the parts that are anki math
@@ -228,15 +229,15 @@ class FormatConverter:
         #  note_text = FormatConverter.OBS_CODE_REGEXP.sub(
             #  FormatConverter.INLINE_CODE_REPLACE, note_text # 类似把`内容`, 替换为常量字符串
         #  )
-        #  display_code_matches = [ # 类似inline code的处理
-            #  code_match.group(0)
-            #  for code_match in FormatConverter.OBS_DISPLAY_CODE_REGEXP.finditer(
-                #  note_text
-            #  )
-        #  ]
-        #  note_text = FormatConverter.OBS_DISPLAY_CODE_REGEXP.sub(
-            #  FormatConverter.DISPLAY_CODE_REPLACE, note_text
-        #  )
+        display_code_matches = [ # 类似inline code的处理
+            (code_match.group(1), code_match.group(2))
+            for code_match in FormatConverter.OBS_DISPLAY_CODE_REGEXP.finditer(
+                note_text
+            )
+        ]
+        note_text = FormatConverter.OBS_DISPLAY_CODE_REGEXP.sub(
+            FormatConverter.DISPLAY_CODE_REPLACE, note_text
+        )
         img_matches = [ # 类似inline code的处理
             img_match.group(1)
             for img_match in FormatConverter.OBS_IMG_REGEXP.finditer(
@@ -254,18 +255,18 @@ class FormatConverter:
                 #  code_match,
                 #  1
             #  )
-        #  for code_match in display_code_matches:
-            #  note_text = note_text.replace(
-                #  FormatConverter.DISPLAY_CODE_REPLACE,
-                #  code_match,
-                #  1
-            #  )
         note_text = FormatConverter.markdown_parse(note_text)
         # Add back the parts that are anki math
         for math_match in math_matches:
             note_text = note_text.replace(
                 FormatConverter.MATH_REPLACE,
                 html.escape(math_match), #? escape的作用是什么?
+                1
+            )
+        for code_match in display_code_matches:
+            note_text = note_text.replace(
+                FormatConverter.DISPLAY_CODE_REPLACE,
+                hilcd(code_match[1], code_match[0]),
                 1
             )
         for img_match in img_matches:

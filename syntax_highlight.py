@@ -12,11 +12,15 @@ STYLE = "default"
 FONT = "Monaco"
 
 def hilcd(code, langAlias):
-    global LASTUSED
+    if langAlias == '':
+        langAlias = "text"
     mystyle = STYLE
     inline = False
 
-    my_lexer = get_lexer_by_name(langAlias, stripall=False)
+    try:
+        my_lexer = get_lexer_by_name(langAlias, stripall=False)
+    except:
+        my_lexer = get_lexer_by_name('text', stripall=False)
 
     # http://pygments.org/docs/formatters/#HtmlFormatter
     # {{{3
