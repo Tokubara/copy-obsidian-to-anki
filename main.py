@@ -277,7 +277,8 @@ class FormatConverter:
             img_path = FormatConverter.ANKI_MEDIA_PATH / img_match
             # 拷贝图片
             if not img_path.is_file():
-                shutil.copy(str(FormatConverter.OBS_ATTACHMENT_PATH / img_path), str(FormatConverter.ANKI_MEDIA_PATH))
+                #  import pdb; pdb.set_trace()
+                shutil.copy(str(FormatConverter.OBS_ATTACHMENT_PATH / img_match), str(FormatConverter.ANKI_MEDIA_PATH))
 
         #  FormatConverter.get_images(note_text)
         #  FormatConverter.get_audio(note_text)
