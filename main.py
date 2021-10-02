@@ -271,7 +271,7 @@ class FormatConverter:
         for img_match in img_matches:
             note_text = note_text.replace(
                 FormatConverter.IMG_REPLACE,
-                html.escape(f'<img src="{img_match}">'), #? escape的作用是什么?
+                f'<img src="{img_match}">', #? escape的作用是什么?
                 1 # 参数1是很重要的, 避免全部替换
             )
             img_path = FormatConverter.ANKI_MEDIA_PATH / img_match
