@@ -2,8 +2,10 @@ import re
 import clipboard
 #  import urllib.request
 #  import configparser
+import pathlib
 import os
 import collections
+import shutil
 import markdown
 import html
 #  import logging
@@ -23,6 +25,9 @@ md_parser = markdown.Markdown(
 class FormatConverter:
     """Converting Obsidian formatting to Anki formatting."""
 
+    ANKI_MEDIA_PATH = pathlib.Path('/Users/quebec/Library/Application Support/Anki2/User 1/collection.media/')
+    OBS_ATTACHMENT_PATH = pathlib.Path('/Users/quebec/notes/vx_attachments/')
+
     OBS_INLINE_MATH_REGEXP = re.compile(
         r"(?<!\$)\$(?=[\S])(?=[^$])[\s\S]*?\S\$"
     )
@@ -33,6 +38,9 @@ class FormatConverter:
     )
     OBS_DISPLAY_CODE_REGEXP = re.compile(
         r"```[\s\S]*?```"
+    )
+    OBS_IMG_REGEXP = re.compile(
+        r"!?\[\[(.+\.png)\]\]"
     )
 
     ANKI_INLINE_START = r"\("
@@ -46,6 +54,7 @@ class FormatConverter:
     MATH_REPLACE = "OBSTOANKIMATH"
     INLINE_CODE_REPLACE = "OBSTOANKICODEINLINE"
     DISPLAY_CODE_REPLACE = "OBSTOANKICODEDISPLAY"
+    IMG_REPLACE = "OBSTOANKIIMG"
 
     IMAGE_REGEXP = re.compile(r'<img alt=".*?" src="(.*?)"') # 我担心wiki link不能正确转换
     SOUND_REGEXP = re.compile(r'\[sound:(.+)\]')
@@ -210,38 +219,47 @@ class FormatConverter:
             FormatConverter.MATH_REPLACE, note_text
         )
         # Now same with code!
-        inline_code_matches = [
-            code_match.group(0)
-            for code_match in FormatConverter.OBS_CODE_REGEXP.finditer(
+        #  inline_code_matches = [
+            #  code_match.group(0)
+            #  for code_match in FormatConverter.OBS_CODE_REGEXP.finditer(
+                #  note_text
+            #  )
+        #  ]
+        #  note_text = FormatConverter.OBS_CODE_REGEXP.sub(
+            #  FormatConverter.INLINE_CODE_REPLACE, note_text # 类似把`内容`, 替换为常量字符串
+        #  )
+        #  display_code_matches = [ # 类似inline code的处理
+            #  code_match.group(0)
+            #  for code_match in FormatConverter.OBS_DISPLAY_CODE_REGEXP.finditer(
+                #  note_text
+            #  )
+        #  ]
+        #  note_text = FormatConverter.OBS_DISPLAY_CODE_REGEXP.sub(
+            #  FormatConverter.DISPLAY_CODE_REPLACE, note_text
+        #  )
+        img_matches = [ # 类似inline code的处理
+            img_match.group(1)
+            for img_match in FormatConverter.OBS_IMG_REGEXP.finditer(
                 note_text
             )
         ]
-        note_text = FormatConverter.OBS_CODE_REGEXP.sub(
-            FormatConverter.INLINE_CODE_REPLACE, note_text # 类似把`内容`, 替换为常量字符串
-        )
-        display_code_matches = [ # 类似inline code的处理
-            code_match.group(0)
-            for code_match in FormatConverter.OBS_DISPLAY_CODE_REGEXP.finditer(
-                note_text
-            )
-        ]
-        note_text = FormatConverter.OBS_DISPLAY_CODE_REGEXP.sub(
-            FormatConverter.DISPLAY_CODE_REPLACE, note_text
+        note_text = FormatConverter.OBS_IMG_REGEXP.sub(
+            FormatConverter.IMG_REPLACE, note_text # 类似把`内容`, 替换为常量字符串
         )
         #  if cloze:
             #  note_text = FormatConverter.curly_to_cloze(note_text)
-        for code_match in inline_code_matches:
-            note_text = note_text.replace(
-                FormatConverter.INLINE_CODE_REPLACE,
-                code_match,
-                1
-            )
-        for code_match in display_code_matches:
-            note_text = note_text.replace(
-                FormatConverter.DISPLAY_CODE_REPLACE,
-                code_match,
-                1
-            )
+        #  for code_match in inline_code_matches:
+            #  note_text = note_text.replace(
+                #  FormatConverter.INLINE_CODE_REPLACE,
+                #  code_match,
+                #  1
+            #  )
+        #  for code_match in display_code_matches:
+            #  note_text = note_text.replace(
+                #  FormatConverter.DISPLAY_CODE_REPLACE,
+                #  code_match,
+                #  1
+            #  )
         note_text = FormatConverter.markdown_parse(note_text)
         # Add back the parts that are anki math
         for math_match in math_matches:
@@ -250,6 +268,17 @@ class FormatConverter:
                 html.escape(math_match), #? escape的作用是什么?
                 1
             )
+        for img_match in img_matches:
+            note_text = note_text.replace(
+                FormatConverter.IMG_REPLACE,
+                html.escape(f'<img src="{img_match}">'), #? escape的作用是什么?
+                1 # 参数1是很重要的, 避免全部替换
+            )
+            img_path = FormatConverter.ANKI_MEDIA_PATH / img_match
+            # 拷贝图片
+            if not img_path.is_file():
+                shutil.copy(str(FormatConverter.OBS_ATTACHMENT_PATH / img_path), str(FormatConverter.ANKI_MEDIA_PATH))
+
         #  FormatConverter.get_images(note_text)
         #  FormatConverter.get_audio(note_text)
         #  note_text = FormatConverter.fix_image_src(note_text)
