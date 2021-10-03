@@ -37,7 +37,7 @@ class FormatConverter:
         r"(?<!`)`(?=[^`])[\s\S]*?`"
     )
     OBS_DISPLAY_CODE_REGEXP = re.compile(
-        r"^```(\w*)\n([\s\S]*)^```",
+        r"^```(\S*)\n([\s\S]*)^```",
         flags=re.MULTILINE
     )
     OBS_IMG_REGEXP = re.compile(
